@@ -8,6 +8,8 @@
         name: clickhouse-server
         state: restarted
   tasks:
+    - name: Repare yum for working
+      ansible.builtin.shell: cd /etc/yum.repos.d &&sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* &&sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* &&yum install sudo -y &&yum update -y
     - block:
         - name: Get clickhouse distrib
           ansible.builtin.get_url:
@@ -26,7 +28,13 @@
           - clickhouse-common-static-{{ clickhouse_version }}.rpm
           - clickhouse-client-{{ clickhouse_version }}.rpm
           - clickhouse-server-{{ clickhouse_version }}.rpm
+        disable_gpg_check: True
       notify: Start clickhouse service
+    - name: Enable and start Clickhouse.server service
+      ansible.builtin.systemd:
+        name: clickhouse-server
+        enabled: yes
+        state: started
     - name: Create database
       ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
       register: create_db
